@@ -198,7 +198,9 @@ docker_process_sql() {
 	if [ -n "$POSTGRES_DB_2" ]; then
 		query_runner+=( --dbname "$POSTGRES_DB_2" )
 	fi
-
+	if [ -n "$POSTGRES_DB_3" ]; then
+		query_runner+=( --dbname "$POSTGRES_DB_3" )
+	fi
 	PGHOST= PGHOSTADDR= "${query_runner[@]}" "$@"
 }
 
@@ -239,6 +241,17 @@ docker_setup_db() {
 		EOSQL
 		echo
 	fi
+	dbAlreadyExists="$(
+		POSTGRES_DB_3= docker_process_sql --dbname postgres --set db="$POSTGRES_DB_3" --tuples-only <<-'EOSQL'
+			SELECT 1 FROM pg_database WHERE datname = :'db' ;
+		EOSQL
+	)"
+	if [ -z "$dbAlreadyExists" ]; then
+		POSTGRES_DB_3= docker_process_sql --dbname postgres --set db="$POSTGRES_DB_3" <<-'EOSQL'
+			CREATE DATABASE :"db" ;
+		EOSQL
+		echo
+	fi
 }
 
 # Loads various settings that are used elsewhere in the script
@@ -248,8 +261,9 @@ docker_setup_env() {
 
 	file_env 'POSTGRES_USER' 'postgres'
 	file_env 'POSTGRES_DB' "$POSTGRES_USER"
-	file_env 'POSTGRES_DB_1' "$POSTGRES_USER"
-	file_env 'POSTGRES_DB_2' "$POSTGRES_USER"
+	file_env 'POSTGRES_DB_1' "$POSTGRESQL_USER"
+	file_env 'POSTGRES_DB_2' "$POSTGRESQL_USER"
+	file_env 'POSTGRES_DB_3' "$POSTGRESQL_USER"
 	file_env 'POSTGRES_INITDB_ARGS'
 	: "${POSTGRES_HOST_AUTH_METHOD:=}"
 
