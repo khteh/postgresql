@@ -172,10 +172,26 @@ docker_process_init_files() {
 					. "$f"
 				fi
 				;;
-			*.sql)     echo "$0: running $f"; docker_process_sql -f "$f"; echo ;;
-			*.sql.gz)  echo "$0: running $f"; gunzip -c "$f" | docker_process_sql; echo ;;
-			*.sql.xz)  echo "$0: running $f"; xzcat "$f" | docker_process_sql; echo ;;
-			*.sql.zst) echo "$0: running $f"; zstd -dc "$f" | docker_process_sql; echo ;;
+			*.sql)     echo "$0: running $f"; 
+                                    	     file=${f##*/}
+					     database=${file%.*}
+					     export DBNAME=$database
+					     docker_process_sql -f "$f"; echo ;;
+			*.sql.gz)  echo "$0: running $f"; 
+					     file=${f##*/}
+					     database=${file%%.*}
+					     export DBNAME=$database
+					     gunzip -c "$f" | docker_process_sql; echo ;;
+			*.sql.xz)  echo "$0: running $f"; 
+					     file=${f##*/}
+					     database=${file%%.*}
+					     export DBNAME=$database
+					     xzcat "$f" | docker_process_sql; echo ;;
+			*.sql.zst) echo "$0: running $f"; 
+					     file=${f##*/}
+					     database=${file%%.*}
+					     export DBNAME=$database
+					     zstd -dc "$f" | docker_process_sql; echo ;;
 			*)         echo "$0: ignoring $f" ;;
 		esac
 		echo
@@ -189,27 +205,14 @@ docker_process_init_files() {
 #    ie: docker_process_sql <my-file.sql
 docker_process_sql() {
 	local query_runner=( psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --no-password --no-psqlrc )
-#	if [ -n "$4" ]; then
-	if [ -n "$1" -a "$1" == "-f" ]; then
-		file=${2##*/}
-		database=${file%.*}
-#		database=(${4//=/ })
-#		echo Processing database ${database[1]}
-#		database=${database[1]}
-echo "1: POSTGRES_DB_1: $POSTGRES_DB_1"
-echo "2: POSTGRES_DB_2: $POSTGRES_DB_2"
-echo "3: POSTGRES_DB_3: $POSTGRES_DB_3"
-		if [ "$database" == "$POSTGRES_DB_1" ]; then
-			echo 1: $database
+        if [ $# -eq 2 -a -n "$1" -a "$1" == "-f" -a -n "$2" -a "$2" = *.sql ] || [ $# -eq 0 -a -n "$DBNAME" ]; then 
+		if [ "$DBNAME" == "$POSTGRES_DB_1" ]; then
 			query_runner+=( --dbname "$POSTGRES_DB_1" )
-		elif [ "$database" == "$POSTGRES_DB_2" ]; then
-			echo 2: $database
+		elif [ "$DBNAME" == "$POSTGRES_DB_2" ]; then
 			query_runner+=( --dbname "$POSTGRES_DB_2" )
-		elif [ "$database" == "$POSTGRES_DB_3" ]; then
-			echo 3: $database
+		elif [ "$DBNAME" == "$POSTGRES_DB_3" ]; then
 			query_runner+=( --dbname "$POSTGRES_DB_3" )
 		elif [ -n "$POSTGRES_DB" ]; then
-			echo 4: $POSTGRES_DB
 			query_runner+=( --dbname "$POSTGRES_DB" )
 		fi
 	elif [ -n "$POSTGRES_DB" ]; then
@@ -243,9 +246,6 @@ docker_setup_db() {
 			CREATE DATABASE :"db" ;
 		EOSQL
 		echo
-		echo "POSTGRES_DB_1: $POSTGRES_DB_1"
-	else
-		echo "$POSTGRES_DB_1 already exists"
 	fi
 	dbAlreadyExists="$(
 		POSTGRES_DB_2= docker_process_sql --dbname postgres --set db="$POSTGRES_DB_2" --tuples-only <<-'EOSQL'
@@ -257,9 +257,6 @@ docker_setup_db() {
 			CREATE DATABASE :"db" ;
 		EOSQL
 		echo
-		echo "POSTGRES_DB_2: $POSTGRES_DB_2"
-	else
-		echo "$POSTGRES_DB_2 already exists"
 	fi
 	dbAlreadyExists="$(
 		POSTGRES_DB_3= docker_process_sql --dbname postgres --set db="$POSTGRES_DB_3" --tuples-only <<-'EOSQL'
@@ -271,9 +268,6 @@ docker_setup_db() {
 			CREATE DATABASE :"db" ;
 		EOSQL
 		echo
-		echo "POSTGRES_DB_3: $POSTGRES_DB_3"
-	else
-		echo "$POSTGRES_DB_3 already exists"
 	fi
 }
 
