@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -Eeox pipefail
+set -Eeo pipefail
 # TODO swap to -Eeuo pipefail above (after handling all potentially-unset variables)
 
 # usage: file_env VAR [DEFAULT]
@@ -172,22 +172,22 @@ docker_process_init_files() {
 					. "$f"
 				fi
 				;;
-			*.sql)     echo "$0: running $f"; 
+			*.sql)     echo "$0: running $f";
                                     	     file=${f##*/}
 					     database=${file%.*}
 					     export DBNAME=$database
 					     docker_process_sql -f "$f"; echo ;;
-			*.sql.gz)  echo "$0: running $f"; 
+			*.sql.gz)  echo "$0: running $f";
 					     file=${f##*/}
 					     database=${file%%.*}
 					     export DBNAME=$database
 					     gunzip -c "$f" | docker_process_sql; echo ;;
-			*.sql.xz)  echo "$0: running $f"; 
+			*.sql.xz)  echo "$0: running $f";
 					     file=${f##*/}
 					     database=${file%%.*}
 					     export DBNAME=$database
 					     xzcat "$f" | docker_process_sql; echo ;;
-			*.sql.zst) echo "$0: running $f"; 
+			*.sql.zst) echo "$0: running $f";
 					     file=${f##*/}
 					     database=${file%%.*}
 					     export DBNAME=$database
@@ -205,16 +205,8 @@ docker_process_init_files() {
 #    ie: docker_process_sql <my-file.sql
 docker_process_sql() {
 	local query_runner=( psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --no-password --no-psqlrc )
-        if [ $# -eq 2 -a -n "$1" -a "$1" == "-f" -a -n "$2" -a "$2" = *.sql ] || [ $# -eq 0 -a -n "$DBNAME" ]; then 
-		if [ "$DBNAME" == "$POSTGRES_DB_1" ]; then
-			query_runner+=( --dbname "$POSTGRES_DB_1" )
-		elif [ "$DBNAME" == "$POSTGRES_DB_2" ]; then
-			query_runner+=( --dbname "$POSTGRES_DB_2" )
-		elif [ "$DBNAME" == "$POSTGRES_DB_3" ]; then
-			query_runner+=( --dbname "$POSTGRES_DB_3" )
-		elif [ -n "$POSTGRES_DB" ]; then
-			query_runner+=( --dbname "$POSTGRES_DB" )
-		fi
+	if [ -n "$DBNAME" ]; then
+		query_runner+=( --dbname "$DBNAME" )
 	elif [ -n "$POSTGRES_DB" ]; then
 		query_runner+=( --dbname "$POSTGRES_DB" )
 	fi
