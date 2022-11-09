@@ -234,8 +234,9 @@ docker_setup_db() {
 		EOSQL
 	)"
 	if [ -z "$dbAlreadyExists" ]; then
-		POSTGRES_DB_1= docker_process_sql --dbname postgres --set db="$POSTGRES_DB_1" <<-'EOSQL'
-			CREATE DATABASE :"db" ;
+		POSTGRES_DB_1= docker_process_sql --dbname postgres --set db="$POSTGRES_DB_1" --set user="$POSTGRESQL_USER" --set password="$POSTGRESQL_PASSWORD" <<-'EOSQL'
+			CREATE USER :"user" WITH PASSWORD :'password' ;
+			CREATE DATABASE :"db" WITH OWNER = :"user" ;
 		EOSQL
 		echo
 	fi
@@ -245,8 +246,8 @@ docker_setup_db() {
 		EOSQL
 	)"
 	if [ -z "$dbAlreadyExists" ]; then
-		POSTGRES_DB_2= docker_process_sql --dbname postgres --set db="$POSTGRES_DB_2" <<-'EOSQL'
-			CREATE DATABASE :"db" ;
+		POSTGRES_DB_2= docker_process_sql --dbname postgres --set db="$POSTGRES_DB_2" --set user="$POSTGRESQL_USER" <<-'EOSQL'
+			CREATE DATABASE :"db" WITH OWNER = :"user" ;
 		EOSQL
 		echo
 	fi
@@ -256,8 +257,8 @@ docker_setup_db() {
 		EOSQL
 	)"
 	if [ -z "$dbAlreadyExists" ]; then
-		POSTGRES_DB_3= docker_process_sql --dbname postgres --set db="$POSTGRES_DB_3" <<-'EOSQL'
-			CREATE DATABASE :"db" ;
+		POSTGRES_DB_3= docker_process_sql --dbname postgres --set db="$POSTGRES_DB_3" --set user="$POSTGRESQL_USER" <<-'EOSQL'
+			CREATE DATABASE :"db" WITH OWNER = :"user" ;
 		EOSQL
 		echo
 	fi
@@ -267,6 +268,7 @@ docker_setup_db() {
 # This should be called before any other functions
 docker_setup_env() {
 	file_env 'POSTGRES_PASSWORD'
+	file_env 'POSTGRESQL_PASSWORD'
 
 	file_env 'POSTGRES_USER' 'postgres'
 	file_env 'POSTGRES_DB' "$POSTGRES_USER"
