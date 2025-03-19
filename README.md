@@ -2,6 +2,30 @@
 
 - Overwrite docker-entrypoint.sh in https://github.com/docker-library/postgres/blob/master/docker-entrypoint.sh to enable multiple databases
 
+## Customization Details:
+
+- https://hub.docker.com/_/postgres "How to extend this image"
+
+- `docker_process_init_files`:
+  - Add the following 3 lines to each of file extensions found in `/docker-entrypoint-initdb.d`:
+  ```
+  file=${f##*/}
+  database=${file%.*}
+  export DBNAME=$database
+  ```
+- `docker_process_sql`:
+  - Process the database files defined by `docker_process_init_files` with `DB_NAME` variable:
+  ```
+  if [ -n "$DBNAME" ]; then
+  	query_runner+=( --dbname "$DBNAME" )
+  ```
+- `docker_setup_db`:
+  - Check and setup all the `POSTGRES_DB_<foo>`
+  - Set the stage in first `POSTGRES_DB_1` for the custom user required by all the subsequent DBs:
+  ```
+  CREATE USER :"user" WITH PASSWORD :'password' ;
+  ```
+
 ## Check Existing Databases
 
 ```
